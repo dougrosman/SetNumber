@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set a Number</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: lightpink;
+            text-align: center;
+            padding: 20px;
+        }
+        #current-number {
+            font-size: 2em;
+            margin: 20px 0;
+        }
+        #loading {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Set a Number</h1>
+    <button id="connect-button">Connect MetaMask</button>
+    <div id="current-number">Current Number: <span id="number-display">Loading...</span></div>
+    <input type="number" id="input-number" placeholder="Enter a new number" />
+    <button id="set-number-button">Set Number</button>
+    <div id="loading">Loading...</div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <script>
+        const contractAddress = '0xF293af3e4dFd223C7CE929F6B80F055a3f22F28F';
+        const contractABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "input",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "setNum",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "num",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+
+        async function connectWallet() {
+            if (window.ethereum) {
+                provider = new ethers.BrowserProvider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                updateNumber();
+            } else {
+                alert('Please install MetaMask!');
+            }
+        }
+
+        async function updateNumber() {
+            const number = await contract.num();
+            document.getElementById('number-display').innerText = number.toString();
+        }
+
+        document.getElementById('connect-button').onclick = connectWallet;
+
+        document.getElementById('set-number-button').onclick = async () => {
+            const newNumber = document.getElementById('input-number').value;
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const tx = await contract.setNum(newNumber);
+                await tx.wait();
+                await updateNumber();
+            } catch (error) {
+                console.error(error);
+                alert('Transaction failed!');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
